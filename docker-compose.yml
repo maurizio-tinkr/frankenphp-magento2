@@ -11,8 +11,8 @@ services:
       - "443:443/udp" # HTTP/3
     volumes:
       - ./src/:/app/public
-      - ./.caddy_data:/data
-      - ./.caddy_config:/config
+      - caddy_data:/data
+      - caddy_config:/config
       - ./frankenphp/caddy/etc/Caddyfile:/etc/caddy/Caddyfile
     # comment the following line in production, it allows to have nice human-readable logs in dev
     tty: true
@@ -135,3 +135,7 @@ services:
 networks:
   magento:
     driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
