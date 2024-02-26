@@ -87,7 +87,7 @@ The Magento 2 files are expected in `./src`. To install Magento from scratch is 
 ## Issues
 
 - `frankenphp/Dockerfile` is a mess, I copied pasted what I could find online trying to resolve some issues, it will need major refactoring.
-- trying to connect to Magento results in a `ERR_CONNECTION_CLOSED` with the following being logged by the FrankenPHP container
+- trying to connect to Magento on `https://localhost` results in a `ERR_CONNECTION_CLOSED` with the following being logged by the FrankenPHP container
 ```shell
 2024-02-26 15:45:24 panic: runtime error: runtime.Pinner.Pin: argument is not a Go pointer
 2024-02-26 15:45:24 
