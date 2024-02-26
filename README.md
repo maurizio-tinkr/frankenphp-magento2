@@ -4,7 +4,7 @@ A POC to run Magento 2 using [FrankenPHP](https://github.com/dunglas/frankenphp)
 
 The docker stack includes:
 
-- FrankenPHP - dunglas/frankenphp:latest-php8.2
+- FrankenPHP - dunglas/frankenphp:1.0.3-php8.3
 - MySQL - arm64v8/mysql:8.0.34
 - OpenSearch - opensearchproject/opensearch:2.5.0
 - OpenSearch dashboard - opensearchproject/opensearch-dashboards:2.5.0
@@ -28,6 +28,10 @@ docker exec -it frankenphp-magento2-php-1 bash
 The Magento 2 files are expected in `./src`. To install Magento from scratch is as follow:
 
 ```shell
+## Download Magento 2
+composer create-project --repository-url=https://repo.magento.com/ \
+    "magento/project-community-edition" /app/public "2.4.x"
+
  ## Install Application
  bin/magento setup:install \
      --backend-frontname=backend \
@@ -91,7 +95,7 @@ The Magento 2 files are expected in `./src`. To install Magento from scratch is 
 - I doubt `mailhog` will be connected as the sendmail configuration is missing. See [this](https://github.com/ityetti/magento2-docker/blob/master/php-fpm/Dockerfile) for more info.
 - It would be nice to switch from MySQL to MariaDB
 
-## Useful rescources
+## Useful resources
 
 - [svenakela/caddy-based-magento](https://github.com/svenakela/caddy-based-magento) - A collection of Docker images for running Magento 2 through Caddy Server v2.
 - [ityetti/magento2-docker](https://github.com/ityetti/magento2-docker) - Magento 2 Docker to Development (For Apple Silicon)
