@@ -1,4 +1,4 @@
-FROM dunglas/frankenphp:latest-php8.2
+FROM dunglas/frankenphp:1.0.3-php8.3
 
 # Install Composer
 RUN apt-get update
@@ -73,7 +73,6 @@ RUN pecl install -o -f \
   pcov \
   raphf \
   redis \
-  xdebug-3.2.2 \
   xmlrpc-1.0.0RC3 \
   yaml
 

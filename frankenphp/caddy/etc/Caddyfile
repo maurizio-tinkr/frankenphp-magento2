@@ -16,9 +16,20 @@
 {$CADDY_EXTRA_CONFIG}
 
 {$SERVER_NAME:localhost} {
+        log {
+                # Redact the authorization query parameter that can be set by Mercure
+                format filter {
+                        wrap console
+                        fields {
+                                uri query {
+                                        replace authorization REDACTED
+                                }
+                        }
+                }
+        }
 
         root * /app/public/pub
-        encode zstd br gzip
+        encode zstd gzip
 
         @blocked {
             path /media/customer/* /media/downloadable/* /media/import/* /media/custom_options/* /errors/*
@@ -38,11 +49,6 @@
             @dynamic not file /static/{re.reg_static.2}
             rewrite @dynamic /static.php?resource={re.reg_static.2}
         }
-
-        log {
-            output file /var/log/caddy.log
-        }
-
         {$CADDY_SERVER_EXTRA_DIRECTIVES}
 
         php_server
