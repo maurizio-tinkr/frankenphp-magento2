@@ -1,0 +1,35 @@
+# Runtime: nginx + php-fpm
+services:
+  app:
+    image: frankenphp-magento2/php-fpm:${PHP_VERSION}
+    build:
+      context: .
+      dockerfile: nginx-fpm/php.Dockerfile
+      args: [PHP_VERSION, COMPOSER_VERSION]
+    environment:
+      PHP_WORKERS: ${PHP_WORKERS}
+    volumes:
+      - magento:/var/www/html
+    deploy:
+      resources:
+        limits: { cpus: "${APP_CPUS}", memory: "${APP_MEMORY}" }
+    depends_on:
+      db: { condition: service_healthy }
+      opensearch: { condition: service_healthy }
+      valkey: { condition: service_healthy }
+    networks: [magento]
+
+  web:
+    image: nginx:${NGINX_VERSION}
+    volumes:
+      - magento:/var/www/html:ro
+      - ./nginx-fpm/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx-fpm/magento.conf:/etc/nginx/magento.conf:ro
+    ports:
+      - "127.0.0.1:${HTTP_PORT}:80"
+    # nginx gets its own CPU on top of APP_CPUS (FrankenPHP's web server shares APP_CPUS with PHP).
+    deploy:
+      resources:
+        limits: { cpus: "1", memory: 256m }
+    depends_on: [app]
+    networks: [magento]

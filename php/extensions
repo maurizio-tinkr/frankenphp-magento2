@@ -1,0 +1,12 @@
+# PHP extensions added to both runtimes (FrankenPHP and php-fpm), with install-php-extensions.
+# The rest of what Magento needs is already compiled into the official PHP images.
+bcmath
+gd
+intl
+pcntl
+pdo_mysql
+redis
+soap
+sockets
+xsl
+zip

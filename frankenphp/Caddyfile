@@ -1,0 +1,37 @@
+{
+	auto_https off
+	skip_install_trust
+
+	frankenphp {
+		num_threads {$PHP_WORKERS}
+		{$FRANKENPHP_WORKER_CONFIG}
+	}
+}
+
+:80 {
+	root * /var/www/html/pub
+	encode zstd gzip
+
+	@blocked path /media/customer/* /media/downloadable/* /media/import/* /media/custom_options/* /errors/*
+	respond @blocked 403
+
+	@hidden path_regexp hidden (/\.|^/errors/.*\.xml$|theme_customization/.*\.xml$)
+	respond @hidden 404
+
+	# The same routing as Magento's nginx.conf.sample.
+	@staticMissing {
+		path_regexp static ^/static/(.+)$
+		not file
+	}
+	@mediaMissing {
+		path /media/*
+		not file
+	}
+
+	route {
+		uri path_regexp ^/static/version[^/]+/ /static/
+		rewrite @staticMissing /static.php?resource={re.static.1}
+		rewrite @mediaMissing /get.php?{query}
+		php_server
+	}
+}
