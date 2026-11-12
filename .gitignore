@@ -1,2 +1,5 @@
 /.idea/
-/src/
+/.env
+/.superpowers/
+/bench/results/*
+!/bench/results/.gitkeep

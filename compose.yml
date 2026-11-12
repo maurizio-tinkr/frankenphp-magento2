@@ -1,0 +1,61 @@
+name: ${COMPOSE_PROJECT_NAME:-frankenphp-magento2}
+
+x-db-env: &db-env
+  MYSQL_DATABASE: ${DB_NAME}
+  MYSQL_USER: ${DB_USER}
+  MYSQL_PASSWORD: ${DB_PASSWORD}
+  MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+
+services:
+  db:
+    image: ${DB_ENGINE}:${DB_VERSION}
+    environment: *db-env
+    volumes:
+      - db:/var/lib/mysql
+      - ./db/my.cnf:/etc/mysql/conf.d/zz-magento.cnf:ro
+    ports:
+      - "127.0.0.1:${DB_PORT}:3306"
+    healthcheck:
+      # MariaDB ships healthcheck.sh, MySQL ships mysqladmin.
+      test: ["CMD-SHELL", "if command -v healthcheck.sh >/dev/null; then healthcheck.sh --connect --innodb_initialized; else mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent; fi"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+    networks: [magento]
+
+  opensearch:
+    image: opensearchproject/opensearch:${OPENSEARCH_VERSION}
+    environment:
+      discovery.type: single-node
+      DISABLE_SECURITY_PLUGIN: "true"
+      DISABLE_INSTALL_DEMO_CONFIG: "true"
+      OPENSEARCH_JAVA_OPTS: -Xms${OPENSEARCH_HEAP} -Xmx${OPENSEARCH_HEAP}
+    ulimits:
+      memlock: { soft: -1, hard: -1 }
+      nofile: { soft: 65536, hard: 65536 }
+    volumes:
+      - opensearch:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs 'localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s'"]
+      interval: 5s
+      timeout: 10s
+      retries: 60
+    networks: [magento]
+
+  valkey:
+    image: valkey/valkey:${VALKEY_VERSION}
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    networks: [magento]
+
+networks:
+  magento:
+
+volumes:
+  magento:
+  opensearch:
+  db:
+    name: ${COMPOSE_PROJECT_NAME:-frankenphp-magento2}_db-${DB_ENGINE}
