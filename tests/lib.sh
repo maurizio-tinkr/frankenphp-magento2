@@ -73,3 +73,16 @@ cart_count() {
 php_json() {
     docker compose exec -T app php -r '$d = json_decode(stream_get_contents(STDIN), true); echo '"$1"';'
 }
+
+# section <jar> <name> — one customer-data section as JSON (what the page's JavaScript loads)
+section() {
+    http_get "/customer/section/load/?sections=$2&force_new_section_timestamp=true" -b "$1" -c "$1" \
+        -H 'X-Requested-With: XMLHttpRequest'
+    echo "$BODY"
+}
+
+# login <jar> <form_key> <email> <password>
+login() {
+    http_get /customer/account/loginPost/ -b "$1" -c "$1" -X POST \
+        --data-urlencode "form_key=$2" --data-urlencode "login[username]=$3" --data-urlencode "login[password]=$4"
+}

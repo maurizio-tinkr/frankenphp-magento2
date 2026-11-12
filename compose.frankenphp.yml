@@ -8,6 +8,8 @@ services:
       args: [FRANKENPHP_VERSION, PHP_VERSION, COMPOSER_VERSION]
     environment:
       PHP_WORKERS: ${PHP_WORKERS}
+      FRANKENPHP_MODE: ${FRANKENPHP_MODE}
+      WORKER_MAX_REQUESTS: ${WORKER_MAX_REQUESTS}
     volumes:
       - magento:/var/www/html
     ports:

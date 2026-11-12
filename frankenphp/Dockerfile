@@ -13,6 +13,6 @@ RUN setcap CAP_NET_BIND_SERVICE=+eip /usr/local/bin/frankenphp \
     && mkdir -p /var/www/html /composer-cache \
     && chown -R www-data:www-data /var/www/html /composer-cache /config/caddy /data/caddy
 
-COPY frankenphp/Caddyfile /etc/frankenphp/Caddyfile
+COPY frankenphp/Caddyfile frankenphp/classic.caddy frankenphp/worker.caddy frankenphp/worker.php /etc/frankenphp/
 WORKDIR /var/www/html
 USER www-data

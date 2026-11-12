@@ -1,0 +1,2 @@
+# Classic mode: every request runs pub/index.php from scratch, like php-fpm.
+php_server

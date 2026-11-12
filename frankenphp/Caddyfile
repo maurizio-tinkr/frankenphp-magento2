@@ -4,7 +4,6 @@
 
 	frankenphp {
 		num_threads {$PHP_WORKERS}
-		{$FRANKENPHP_WORKER_CONFIG}
 	}
 }
 
@@ -32,6 +31,7 @@
 		uri path_regexp ^/static/version[^/]+/ /static/
 		rewrite @staticMissing /static.php?resource={re.static.1}
 		rewrite @mediaMissing /get.php?{query}
-		php_server
+		# classic.caddy or worker.caddy, from FRANKENPHP_MODE in .env
+		import /etc/frankenphp/{$FRANKENPHP_MODE}.caddy
 	}
 }
