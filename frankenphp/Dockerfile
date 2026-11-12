@@ -10,8 +10,8 @@ COPY php/php.ini $PHP_INI_DIR/conf.d/zz-magento.ini
 
 # Run as www-data, like php-fpm, and still bind port 80.
 RUN setcap CAP_NET_BIND_SERVICE=+eip /usr/local/bin/frankenphp \
-    && mkdir -p /var/www/html \
-    && chown -R www-data:www-data /var/www/html /config/caddy /data/caddy
+    && mkdir -p /var/www/html /composer-cache \
+    && chown -R www-data:www-data /var/www/html /composer-cache /config/caddy /data/caddy
 
 COPY frankenphp/Caddyfile /etc/frankenphp/Caddyfile
 WORKDIR /var/www/html

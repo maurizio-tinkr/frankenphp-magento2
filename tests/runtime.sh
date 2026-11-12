@@ -23,7 +23,7 @@ grep -q '^memory_limit => 2G' <<<"$ini" && pass "memory_limit 2G from php/php.in
 u=$(docker compose exec -T app sh -c 'ps -o user= -p 1 2>/dev/null || stat -c %U /proc/1' | tr -d '\r ')
 [ "$u" = www-data ] && pass "app runs as www-data" || fail "app runs as ${u:-unknown}, expected www-data"
 
-http_get / >/dev/null
+http_get /
 [ "$HTTP_STATUS" != 000 ] && pass "web answers on :${HTTP_PORT} (HTTP $HTTP_STATUS)" || fail "nothing answers on :${HTTP_PORT}"
 
 done_or_fail

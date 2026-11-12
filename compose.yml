@@ -11,7 +11,7 @@ services:
     image: ${DB_ENGINE}:${DB_VERSION}
     environment: *db-env
     volumes:
-      - db:/var/lib/mysql
+      - db-${DB_ENGINE}:/var/lib/mysql
       - ./db/my.cnf:/etc/mysql/conf.d/zz-magento.cnf:ro
     ports:
       - "127.0.0.1:${DB_PORT}:3306"
@@ -56,6 +56,8 @@ networks:
 
 volumes:
   magento:
+  composer:
   opensearch:
-  db:
-    name: ${COMPOSE_PROJECT_NAME:-frankenphp-magento2}_db-${DB_ENGINE}
+  # One data volume per engine: switching DB_ENGINE never hands MySQL a MariaDB datadir.
+  db-mariadb:
+  db-mysql:

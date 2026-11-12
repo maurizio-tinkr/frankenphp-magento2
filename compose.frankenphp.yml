@@ -20,3 +20,34 @@ services:
       opensearch: { condition: service_healthy }
       valkey: { condition: service_healthy }
     networks: [magento]
+
+  # One-shot installer: docker compose run --rm install
+  install:
+    extends: app
+    profiles: [install]
+    ports: !reset []
+    deploy: !reset {}
+    entrypoint: ["bash", "/install/install.sh"]
+    command: []
+    environment:
+      MAGENTO_DISTRIBUTION: ${MAGENTO_DISTRIBUTION}
+      MAGENTO_VERSION: ${MAGENTO_VERSION}
+      MAGENTO_COMPOSER_PUBLIC_KEY: ${MAGENTO_COMPOSER_PUBLIC_KEY}
+      MAGENTO_COMPOSER_PRIVATE_KEY: ${MAGENTO_COMPOSER_PRIVATE_KEY}
+      SAMPLE_DATA: ${SAMPLE_DATA}
+      ADMIN_USER: ${ADMIN_USER}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      HTTP_PORT: ${HTTP_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      COMPOSE_PROFILES: ${COMPOSE_PROFILES}
+      COMPOSER_CACHE_DIR: /composer-cache
+    volumes:
+      - ./install:/install:ro
+      - composer:/composer-cache
+    depends_on:
+      db: { condition: service_healthy }
+      opensearch: { condition: service_healthy }
+      valkey: { condition: service_healthy }
