@@ -51,6 +51,59 @@ services:
       retries: 30
     networks: [magento]
 
+  # --- Optional extras (COMPOSE_PROFILES in .env) ---------------------------
+
+  rabbitmq:
+    profiles: [rabbitmq]
+    image: rabbitmq:${RABBITMQ_VERSION}-management
+    environment:
+      RABBITMQ_DEFAULT_USER: magento
+      RABBITMQ_DEFAULT_PASS: magento
+    ports:
+      - "127.0.0.1:${RABBITMQ_UI_PORT}:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+    networks: [magento]
+
+  mailpit:
+    profiles: [mailpit]
+    image: axllent/mailpit:${MAILPIT_VERSION}
+    ports:
+      - "127.0.0.1:${MAILPIT_UI_PORT}:8025"
+    networks: [magento]
+
+  opensearch-dashboards:
+    profiles: [opensearch-dashboards]
+    image: opensearchproject/opensearch-dashboards:${OPENSEARCH_VERSION}
+    environment:
+      OPENSEARCH_HOSTS: '["http://opensearch:9200"]'
+      DISABLE_SECURITY_DASHBOARDS_PLUGIN: "true"
+    ports:
+      - "127.0.0.1:${OPENSEARCH_DASHBOARDS_PORT}:5601"
+    depends_on:
+      opensearch: { condition: service_healthy }
+    networks: [magento]
+
+  # Varnish takes HTTP_PORT; set WEB_PORT in .env so the runtime moves out of its way.
+  varnish:
+    profiles: [varnish]
+    image: varnish:${VARNISH_VERSION}
+    volumes:
+      - ./varnish/default.vcl:/etc/varnish/default.vcl:ro
+    environment:
+      VARNISH_SIZE: 512M
+    # Varnish resolves "backend" once, at start: restart it whenever the runtime is recreated,
+    # and retry until the name exists (nginx's web container starts after app).
+    restart: on-failure
+    depends_on:
+      app: { condition: service_started, restart: true }
+    ports:
+      - "127.0.0.1:${HTTP_PORT}:80"
+    networks: [magento]
+
 networks:
   magento:
 

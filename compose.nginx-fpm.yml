@@ -57,10 +57,14 @@ services:
       - ./nginx-fpm/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./nginx-fpm/magento.conf:/etc/nginx/magento.conf:ro
     ports:
-      - "127.0.0.1:${HTTP_PORT}:80"
+      - "127.0.0.1:${WEB_PORT:-${HTTP_PORT}}:80"
     # nginx gets its own CPU on top of APP_CPUS (FrankenPHP's web server shares APP_CPUS with PHP).
     deploy:
       resources:
         limits: { cpus: "1", memory: 256m }
-    depends_on: [app]
-    networks: [magento]
+    # nginx resolves app once, at start: restart it whenever app is recreated.
+    depends_on:
+      app: { condition: service_started, restart: true }
+    networks:
+      magento:
+        aliases: [backend]
