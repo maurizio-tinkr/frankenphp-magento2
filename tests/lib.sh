@@ -4,7 +4,11 @@ set -uo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 3
 [ -f .env ] || { echo "❌ .env missing: run cp .env.example .env" >&2; exit 3; }
-set -a; . ./.env; set +a
+# Load .env like Compose does: a variable already set in the environment wins.
+while IFS='=' read -r key value; do
+    [[ "$key" =~ ^[A-Z_][A-Z0-9_]*$ ]] || continue
+    [ -n "${!key+x}" ] || export "$key=$value"
+done < .env
 
 BASE_URL="http://localhost:${HTTP_PORT}"
 FAILED=0
