@@ -109,6 +109,8 @@ services:
     profiles: [bench]
     image: grafana/k6:${K6_VERSION}
     user: root   # writes results into ./bench/results
+    environment:
+      HOST: localhost:${HTTP_PORT}
     volumes:
       - ./bench:/bench
     networks: [magento]

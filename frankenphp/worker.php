@@ -19,6 +19,27 @@ use Magento\Framework\ObjectManagerInterface;
 
 require '/var/www/html/app/bootstrap.php';
 
+/**
+ * Magento's Bootstrap answers a fatal error with a 500 and exit(1). In a worker, exit() skips the
+ * request's clean-up and kills the worker: answer the same way, without the exit.
+ */
+final class WorkerBootstrap extends Bootstrap
+{
+    protected function terminate(\Throwable $e)
+    {
+        try {
+            $this->getObjectManager()->get(\Psr\Log\LoggerInterface::class)->critical($e);
+        } catch (\Throwable) {
+            error_log((string) $e);
+        }
+        if (!headers_sent()) {
+            http_response_code(500);
+            header('Content-Type: text/plain');
+        }
+        echo "An error has happened during application run. See exception log for details.\n";
+    }
+}
+
 // PHP settings changed with ini_set() outlive the request in worker mode. The admin, for one, renames the
 // session cookie. Restore every setting before each request: once a response is sent, PHP refuses to
 // change the session ones.
@@ -47,6 +68,19 @@ foreach (LONG_LIVED as $type) {
     $resolved = \Closure::bind(fn () => $this->_config->getPreference($type), $root, ObjectManager::class)();
     $longLived[$resolved] = $root->get($type);
 }
+
+// A transaction a request left open must not swallow the next customer's writes.
+$rollBackLeftovers = static function (\Magento\Framework\App\ResourceConnection $resource): void {
+    $connections = \Closure::bind(fn () => $this->connections, $resource, \Magento\Framework\App\ResourceConnection::class)();
+    foreach ($connections as $name => $connection) {
+        if ($connection->getTransactionLevel() > 0) {
+            error_log("worker.php: rolling back a transaction left open on connection '$name'");
+            while ($connection->getTransactionLevel() > 0) {
+                $connection->rollBack();
+            }
+        }
+    }
+};
 
 // The ObjectManager keeps its shared instances in a protected property: change it from its own scope.
 $addShared = static function (ObjectManagerInterface $objectManager, array $instances): void {
@@ -93,8 +127,12 @@ $resetStatics = static function (): void {
     }, null, \Magento\Framework\Model\CallbackPool::class)();
 };
 
+$resource = $root->get(\Magento\Framework\App\ResourceConnection::class);
+
 $handler = static function () use (
     $objectManagerFactory,
+    $resource,
+    $rollBackLeftovers,
     $longLived,
     $addShared,
     $clearShared,
@@ -104,9 +142,11 @@ $handler = static function () use (
 ): void {
     $restoreIni();
     $autoloaders = spl_autoload_functions();
-    $bootstrap = Bootstrap::create(BP, $_SERVER, $objectManagerFactory);
+    // Not Bootstrap::create(): it adds Magento's paths to the autoloader again on every call.
+    $bootstrap = new WorkerBootstrap($objectManagerFactory, BP, $_SERVER);
     $objectManager = $bootstrap->getObjectManager();
     $addShared($objectManager, $longLived);
+    header('X-FrankenPHP-Worker: 1');
 
     try {
         $bootstrap->run($bootstrap->createApplication(Http::class));
@@ -116,6 +156,8 @@ $handler = static function () use (
         if (session_status() === PHP_SESSION_ACTIVE) {
             session_write_close();
         }
+        $_SESSION = [];
+        $rollBackLeftovers($resource);
         // Let this request's objects be freed: nothing may still point at them.
         // Creating an ObjectManager registers one more code-generation autoloader, which holds it.
         foreach (spl_autoload_functions() as $autoloader) {

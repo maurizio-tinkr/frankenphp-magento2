@@ -231,28 +231,28 @@ Requests per second (median response time). Higher is better.
 
 | Page | Full-page cache | nginx + php-fpm | FrankenPHP classic | FrankenPHP worker |
 |---|---|---|---|---|
-| Home | on | **349 (34 ms)** | 148 (98 ms) | 146 (98 ms) |
-| Category | on | **342 (35 ms)** | 138 (102 ms) | 235 (68 ms) |
-| Product | on | **342 (34 ms)** | 142 (101 ms) | 231 (68 ms) |
-| Home | off | **109 (132 ms)** | 56 (285 ms) | 52 (292 ms) |
-| Category | off | 54 (295 ms) | 29 (548 ms) | **60 (260 ms)** |
-| Product | off | **54 (293 ms)** | 26 (593 ms) | 37 (409 ms) |
-| Search | n/a (never cached) | 53 (300 ms) | 30 (524 ms) | **56 (274 ms)** |
-| Add to cart | n/a (never cached) | **115 (133 ms)** | 48 (314 ms) | 100 (137 ms) |
+| Home | on | **364 (33 ms)** | 152 (98 ms) | 242 (66 ms) |
+| Category | on | **346 (36 ms)** | 142 (102 ms) | 191 (74 ms) |
+| Product | on | **353 (34 ms)** | 143 (100 ms) | 242 (67 ms) |
+| Home | off | **105 (157 ms)** | 53 (290 ms) | 83 (183 ms) |
+| Category | off | 52 (299 ms) | 30 (532 ms) | **56 (272 ms)** |
+| Product | off | **54 (295 ms)** | 27 (588 ms) | 36 (408 ms) |
+| Search | never cached | 52 (303 ms) | 28 (548 ms) | **57 (271 ms)** |
+| Add to cart | never cached | **120 (126 ms)** | 48 (312 ms) | 101 (136 ms) |
 
-Every run: 16 virtual users, 30 seconds, 0 failed requests.
+Every run: 16 virtual users, 30 seconds, 0 failed requests. Running the same case twice gives numbers 10 to 20% apart, so don't read much into small differences.
 
 What I read in there:
 
-- **nginx + php-fpm wins.** On my machine it serves cached pages at about 340 requests per second, more than twice FrankenPHP classic.
-- **Worker mode helps.** Against FrankenPHP classic it's about 1.7 times faster on cached category and product pages, and 1.4 to 2 times faster on uncached category, product, search and add to cart. On uncached category pages and search it even beats php-fpm (60 against 54, 56 against 53). The home page is the odd one out: no gain at all.
-- **One request at a time, they're all equal.** A cached category page takes about 15 ms on every runtime. The gap only shows up under load: both containers max out their 4 CPUs, FrankenPHP just spends about 2.4 times more CPU per cached page. More CPUs or more threads didn't change that. I don't know yet whether it's the thread-safe PHP build, Go's runtime or Docker on a Mac, and I'd love to see the same benchmark on a Linux box.
+- **nginx + php-fpm wins.** On my machine it serves cached pages at about 350 requests per second, more than twice FrankenPHP classic and about 1.5 times worker mode.
+- **Worker mode helps.** Against FrankenPHP classic it's 1.4 to 1.7 times faster on cached pages, and 1.3 to 2 times faster on uncached ones. On uncached category pages and search it even edges past php-fpm (56 against 52, 57 against 52).
+- **One request at a time, the gap is small.** A cached category page takes about 15 ms on php-fpm, 20 ms on FrankenPHP classic and 12 ms in worker mode. Under load it opens up: both containers max out their 4 CPUs, FrankenPHP classic just spends about 2.4 times more CPU per cached page. More CPUs or more threads didn't change that. I don't know yet whether it's the thread-safe PHP build, Go's runtime or Docker on a Mac, and I'd love to see the same benchmark on a Linux box.
 
 ### Before you quote these numbers
 
 - **It's my laptop.** An Apple M1 Pro (10 cores, 16 GB) running OrbStack 2.2.5, with k6, the database and OpenSearch on the same machine. Docker on a Mac runs inside a VM. Run it on a Linux server and you'll get different numbers.
 - **nginx gets 1 extra CPU.** php-fpm gets `APP_CPUS` like FrankenPHP, but nginx runs in its own container with 1 CPU on top. FrankenPHP's web server shares `APP_CPUS` with PHP. That favours nginx + php-fpm a little.
-- **The PHP builds differ.** FrankenPHP needs thread-safe PHP (ZTS) and php-fpm uses the standard build (NTS). Same version, same extensions, same `php.ini`, but not the same binary.
+- **The PHP builds differ.** FrankenPHP needs thread-safe PHP (ZTS) and php-fpm uses the standard build (NTS). Same version, same extensions, same `php.ini` (I took the `PHP_VALUE` overrides out of Magento's nginx config so php-fpm really runs on it too), but not the same binary.
 - **16 users, 30 seconds.** Enough to compare the 3 runtimes. It doesn't tell you what any of them can sustain in production.
 
 ## Tests
@@ -265,7 +265,7 @@ Plain bash and curl, run from the repository root against the running stack:
 | `tests/runtime.sh` | the PHP runtime has the right version, extensions and `php.ini`, and runs as `www-data` |
 | `tests/smoke.sh` | home, admin, category, product, images, CSS, search, add to cart |
 | `tests/install-guards.sh` | a second install is refused; Magento without keys is refused |
-| `tests/switch.sh` | switching runtime and database engine keeps the store working (takes ~10 minutes) |
+| `tests/switch.sh` | switching runtime keeps the store working, and the store works on both database engines. It reinstalls the store twice, so anything you changed in it is gone (takes ~10 minutes) |
 | `tests/profiles.sh` | each enabled extra runs and Magento uses it |
 | `tests/leak.sh` | customers never see each other's cart or login (`ROUNDS=100 tests/leak.sh`) |
 | `tests/memory.sh` | memory doesn't grow under load (the one that matters in worker mode) |

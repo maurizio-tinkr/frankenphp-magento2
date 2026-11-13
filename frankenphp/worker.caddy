@@ -1,7 +1,11 @@
 # Worker mode: requests for Magento's front controller go to worker.php, which keeps PHP's classes and
 # Magento's DI configuration in memory. Real .php files (static.php, get.php, health_check.php) still
 # run classic.
-@frontController not file {path} {path}/index.php
+# Everything that isn't a real file, plus anything ending in "/" (the home page: pub/ is a directory).
+@frontController not {
+	file {path}
+	not path */
+}
 php_server @frontController {
 	worker {
 		file /etc/frankenphp/worker.php
@@ -11,5 +15,7 @@ php_server @frontController {
 }
 php_server {
 	root /var/www/html/pub
+	# pub/ only exists after the install: don't look it up at startup.
+	resolve_root_symlink false
 	try_files {path} index.php
 }

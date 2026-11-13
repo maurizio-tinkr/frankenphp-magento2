@@ -34,6 +34,29 @@ for i in $(seq "$ROUNDS"); do
     [ "$who" = "Veronica Costello" ] || { c_lost=$((c_lost + 1)); [ $c_lost -le 3 ] && echo "   round $i: C is '${who}'" >&2; }
 done
 
+# D registers and logs in (Magento gives the session a new id), then keeps sending requests with the
+# cookie from before the login, as a browser tab would. New guests in between must never become D.
+kd=leakD$RANDOM$RANDOM$RANDOM email_d="leak-$RANDOM$RANDOM@example.com"
+d=$(new_session "$kd"); d_old=$(mktemp)
+http_get /customer/account/create/ -b "$d" -c "$d"
+cp "$d" "$d_old"
+http_get /customer/account/createpost/ -b "$d" -c "$d" -X POST --data-urlencode "form_key=$kd" \
+    --data-urlencode firstname=Dora --data-urlencode lastname=Leak --data-urlencode "email=$email_d" \
+    --data-urlencode password='Passw0rd!Long' --data-urlencode password_confirmation='Passw0rd!Long'
+name_d=$(section "$d" customer | php_json '$d["customer"]["fullname"] ?? ""')
+[ "$name_d" = "Dora Leak" ] && pass "D registered and logged in" || fail "D could not register (got '${name_d}')"
+takeovers=0
+for i in $(seq "$ROUNDS"); do
+    http_get / -b "$d_old"
+    g=$(new_session "leakG$RANDOM$RANDOM")
+    who=$(section "$g" customer | php_json '$d["customer"]["fullname"] ?? ""')
+    [ -z "$who" ] || takeovers=$((takeovers + 1))
+    rm -f "$g"
+done
+rm -f "$d" "$d_old"
+[ $takeovers = 0 ] && pass "no guest became D after D's login ($ROUNDS rounds)" \
+    || fail "a guest became D in $takeovers of $ROUNDS rounds"
+
 [ $errors = 0 ] && pass "no failed requests" || fail "$errors requests failed"
 [ $cart_leaks = 0 ] && pass "B never saw A's cart ($ROUNDS rounds)" || fail "B saw A's cart in $cart_leaks of $ROUNDS rounds"
 [ $login_leaks = 0 ] && pass "B never saw C's login ($ROUNDS rounds)" || fail "B saw C's login in $login_leaks of $ROUNDS rounds"

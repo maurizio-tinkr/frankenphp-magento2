@@ -1,5 +1,7 @@
 # Classic mode: every request runs pub/index.php from scratch, like php-fpm.
 php_server {
 	root /var/www/html/pub
+	# pub/ only exists after the install: don't look it up at startup.
+	resolve_root_symlink false
 	try_files {path} index.php
 }

@@ -26,4 +26,16 @@ u=$(docker compose exec -T app sh -c 'ps -o user= -p 1 2>/dev/null || stat -c %U
 http_get /
 [ "$HTTP_STATUS" != 000 ] && pass "web answers on :${HTTP_PORT} (HTTP $HTTP_STATUS)" || fail "nothing answers on :${HTTP_PORT}"
 
+# FrankenPHP worker mode: Magento's pages, the home page included, must be served by the worker.
+if [[ "${COMPOSE_FILE}" == *frankenphp* ]]; then
+    for path in / /gear/bags.html; do
+        h=$(curl -s -D - -o /dev/null "${BASE_URL}${path}" | grep -ci '^x-frankenphp-worker:')
+        if [ "${FRANKENPHP_MODE}" = worker ]; then
+            [ "$h" = 1 ] && pass "$path served by the worker" || fail "$path not served by the worker"
+        else
+            [ "$h" = 0 ] && pass "$path served classic" || fail "$path served by a worker in classic mode"
+        fi
+    done
+fi
+
 done_or_fail
