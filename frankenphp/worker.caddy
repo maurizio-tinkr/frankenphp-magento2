@@ -1,5 +1,6 @@
-# Worker mode: requests for Magento's front controller go to worker.php, which boots Magento once and
-# keeps it in memory. Real .php files (static.php, get.php, health_check.php) still run classic.
+# Worker mode: requests for Magento's front controller go to worker.php, which keeps PHP's classes and
+# Magento's DI configuration in memory. Real .php files (static.php, get.php, health_check.php) still
+# run classic.
 @frontController not file {path} {path}/index.php
 php_server @frontController {
 	worker {
@@ -8,4 +9,7 @@ php_server @frontController {
 		match /*
 	}
 }
-php_server
+php_server {
+	root /var/www/html/pub
+	try_files {path} index.php
+}

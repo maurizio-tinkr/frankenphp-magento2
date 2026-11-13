@@ -1,2 +1,5 @@
 # Classic mode: every request runs pub/index.php from scratch, like php-fpm.
-php_server
+php_server {
+	root /var/www/html/pub
+	try_files {path} index.php
+}

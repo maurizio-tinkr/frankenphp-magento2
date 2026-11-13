@@ -83,13 +83,24 @@ $emptySessions = static function (ObjectManagerInterface $objectManager): void {
     }
 };
 
+// Static state Magento leaves behind, which classic mode throws away with the process:
+// - config XML objects, registered in Config\Base::$instances (Magento ships destroy() for it)
+// - commit callbacks never run, kept in CallbackPool together with the request's objects
+$resetStatics = static function (): void {
+    \Magento\Framework\App\Config\Base::destroy();
+    \Closure::bind(static function () {
+        self::$commitCallbacks = [];
+    }, null, \Magento\Framework\Model\CallbackPool::class)();
+};
+
 $handler = static function () use (
     $objectManagerFactory,
     $longLived,
     $addShared,
     $clearShared,
     $emptySessions,
-    $restoreIni
+    $restoreIni,
+    $resetStatics
 ): void {
     $restoreIni();
     $autoloaders = spl_autoload_functions();
@@ -114,6 +125,7 @@ $handler = static function () use (
         }
         $emptySessions($objectManager);
         $clearShared($objectManager);
+        $resetStatics();
     }
 };
 

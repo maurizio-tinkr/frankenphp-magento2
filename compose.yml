@@ -104,6 +104,15 @@ services:
       - "127.0.0.1:${HTTP_PORT}:80"
     networks: [magento]
 
+  # Benchmark: docker compose --profile bench run --rm k6 run ... /bench/storefront.js (see README)
+  k6:
+    profiles: [bench]
+    image: grafana/k6:${K6_VERSION}
+    user: root   # writes results into ./bench/results
+    volumes:
+      - ./bench:/bench
+    networks: [magento]
+
 networks:
   magento:
 
